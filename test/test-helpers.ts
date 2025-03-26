@@ -2,11 +2,14 @@
 // this is a hack to get around the way ethers presents the result
 const { ethers } = require("hardhat");
 import {
+  Destination,
   SingleAssetExit,
   AllocationType,
   NullAssetMetadata,
   AssetType,
+  AssetMetadata,
 } from "../src/types";
+import { destinationFromAddress } from "../src/utils";
 
 import { defaultAbiCoder, Result } from "@ethersproject/abi";
 import { BigNumber } from "@ethersproject/bignumber";
@@ -30,6 +33,10 @@ export function rehydrateExit(exitResult: Result) {
   });
 }
 
+export function makeDestination(address: string): Destination {
+  return destinationFromAddress(address);
+}
+
 interface MakeSimpleExitParameters {
   asset: string;
   destination: string;
@@ -48,7 +55,7 @@ export function makeSimpleExit({
     assetMetadata,
     allocations: [
       {
-        destination: "0x000000000000000000000000" + destination.slice(2), // padded alice
+        destination: makeDestination(destination),
         amount,
         allocationType: AllocationType.simple,
         metadata: "0x",
@@ -108,7 +115,7 @@ export function getQualifiedSAE(
     },
     allocations: [
       {
-        destination: "0x000000000000000000000000" + address.slice(2),
+        destination: makeDestination(address),
         amount,
         allocationType: AllocationType.simple,
         metadata: "0x",

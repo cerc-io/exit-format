@@ -1,22 +1,24 @@
 const { expect } = require("chai");
-import { encodeAllocations, encodeExit } from "../src/coders";
+import { encodeAllocation, encodeExit } from "../src/coders";
 import {
+  Destination,
   Allocation,
   AllocationType,
   Exit,
   NullAssetMetadata,
 } from "../src/types";
+import { makeDestination } from "./test-helpers";
 
 describe("ExitFormat (typescript)", function () {
   it("Can encode an allocation", async function () {
     const allocation: Allocation = {
-      destination:
-        "0x00000000000000000000000096f7123E3A80C9813eF50213ADEd0e4511CB820f",
+      destination: makeDestination("0x96f7123E3A80C9813eF50213ADEd0e4511CB820f"),
       amount: "0x01",
       allocationType: AllocationType.simple,
       metadata: "0x",
     };
-    const encodedAllocation = encodeAllocations(allocation);
+
+    const encodedAllocation = encodeAllocation(allocation);
     // console.log(`Encoded Allocation: ${encodedAllocation}`)
 
     expect(encodedAllocation).to.eq(
@@ -31,8 +33,7 @@ describe("ExitFormat (typescript)", function () {
         assetMetadata: NullAssetMetadata,
         allocations: [
           {
-            destination:
-              "0x00000000000000000000000096f7123E3A80C9813eF50213ADEd0e4511CB820f",
+            destination: makeDestination("0x96f7123E3A80C9813eF50213ADEd0e4511CB820f"),
             amount: "0x01",
             allocationType: AllocationType.simple,
             metadata: "0x",

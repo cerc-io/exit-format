@@ -2,6 +2,7 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 import { BigNumber, Wallet } from "ethers";
 import {
+  Destination,
   Allocation,
   AllocationType,
   Exit,
@@ -11,8 +12,9 @@ import {
 } from "../src/types";
 import { makeTokenIdExitMetadata } from "../src/token-id-metadata";
 import { TestConsumer } from "../typechain/TestConsumer";
-import { makeSimpleExit } from "./test-helpers";
 import {
+  makeSimpleExit,
+  makeDestination,
   deployERC20,
   deployERC721,
   deployERC1155,
@@ -33,8 +35,7 @@ describe("ExitFormat (solidity)", function () {
 
   it("Can encode an allocation", async function () {
     const allocation: Allocation = {
-      destination:
-        "0x00000000000000000000000096f7123E3A80C9813eF50213ADEd0e4511CB820f",
+      destination: makeDestination("0x96f7123E3A80C9813eF50213ADEd0e4511CB820f"),
       amount: "0x01",
       allocationType: AllocationType.simple,
       metadata: "0x",
@@ -53,8 +54,7 @@ describe("ExitFormat (solidity)", function () {
         assetMetadata: NullAssetMetadata,
         allocations: [
           {
-            destination:
-              "0x00000000000000000000000096f7123E3A80C9813eF50213ADEd0e4511CB820f",
+            destination: makeDestination("0x96f7123E3A80C9813eF50213ADEd0e4511CB820f"),
             amount: "0x01",
             allocationType: AllocationType.simple,
             metadata: "0x",
@@ -69,11 +69,22 @@ describe("ExitFormat (solidity)", function () {
     );
   });
 
+  it("Can compare destinations for equality", async function () {
+    const destA = makeDestination("0x96f7123E3A80C9813eF50213ADEd0e4511CB820f");
+    const destB = makeDestination("0x96f7123E3A80C9813eF50213ADEd0e4511CB820f");
+    // destC is a different application-specific identifier (non-zero first 12 bytes)
+    const destC = "0x4200000000000000000000000000000000000000000000000000000000000000";
+
+    const destinationsABequal = await testConsumer.destinationsEqual(destA, destB);
+    const destinationsACequal = await testConsumer.destinationsEqual(destA, destC);
+    expect(destinationsABequal).to.be.true;
+    expect(destinationsACequal).to.be.false;
+  });
+
   it("Can compare exits for equality", async function () {
     const allocations: Allocation[] = [
       {
-        destination:
-          "0x00000000000000000000000096f7123E3A80C9813eF50213ADEd0e4511CB820f",
+        destination: makeDestination("0x96f7123E3A80C9813eF50213ADEd0e4511CB820f"),
         amount: "0x01",
         allocationType: AllocationType.simple,
         metadata: "0x",
@@ -127,7 +138,7 @@ describe("ExitFormat (solidity)", function () {
       assetMetadata: NullAssetMetadata,
       allocations: [
         {
-          destination: "0x000000000000000000000000" + alice.address.slice(2), // padded alice
+          destination: makeDestination(alice.address),
           amount,
           allocationType: AllocationType.simple,
           metadata: "0x",

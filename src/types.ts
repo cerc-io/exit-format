@@ -1,4 +1,9 @@
 import { BytesLike } from "@ethersproject/bytes";
+import { BigNumber } from "ethers";
+
+// A Destination is a bytes32 value that either contains a zero-padded address or an application-specific identifier
+// When containing an address, the address occupies the last 20 bytes with the first 12 bytes being zero
+export type Destination = string; // bytes32
 
 export enum AllocationType {
   simple,
@@ -7,7 +12,7 @@ export enum AllocationType {
 }
 
 export interface Allocation {
-  destination: string; // an Ethereum address
+  destination: Destination;
   amount: string; // a uint256;
   allocationType: number;
   metadata: BytesLike;

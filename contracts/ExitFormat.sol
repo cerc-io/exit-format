@@ -41,7 +41,7 @@ library ExitFormat {
 
     // Enum of different (non-native) token types the SingleAssetExit can contain
     // Default - Either an ERC20 token or the chain's native asset, specified by
-    //           the oken address 0x00. Requires no metadata.
+    //           the token address 0x00. Requires no metadata.
     // ERC721 - NFT assets managed by a contract implementing IERC721.
     //          This requires the metadata to be an encoded `TokenIdExitMetadata`
     // ERC1155 - Fungible or non-fungible assets managed by a contract implementing IERC1155.
@@ -54,6 +54,11 @@ library ExitFormat {
     struct TokenIdExitMetadata {
         uint256 tokenId;
     }
+
+    // A Destination refers either to a zero-padded address or an application-specific identifier.
+    // * When containing an address, the address occupies the last 20 bytes with the first 12 bytes being zero.
+    // * The discriminant is whether or not the first 12 bytes are zero.
+    type Destination is bytes32;
 
     // allocations is an ordered array of Allocation.
     // The ordering is important, and may express e.g. a priority order for the exit
@@ -68,7 +73,7 @@ library ExitFormat {
     // * an allocationType, which directs calling code on how to interpret the allocation
     // * custom metadata (optional field, can be zero bytes). This can be used flexibly by different protocols.
     struct Allocation {
-        bytes32 destination;
+        Destination destination;
         uint256 amount;
         uint8 allocationType;
         bytes metadata;
@@ -125,6 +130,28 @@ library ExitFormat {
         return abi.decode(_allocation_, (Allocation));
     }
 
+    function destinationsEqual(
+        Destination a,
+        Destination b
+    ) internal pure returns (bool) {
+        return Destination.unwrap(a) == Destination.unwrap(b);
+    }
+
+    function destinationFromAddress(address account) internal pure returns (Destination) {
+        return Destination.wrap(bytes32(bytes20(account)));
+    }
+
+    function isAddressDestination(Destination destination) internal pure returns (bool) {
+        bytes32 data = Destination.unwrap(destination);
+        return bytes12(data) == bytes12(0);
+    }
+
+    function getDestinationAddress(Destination destination) internal pure returns (address) {
+        require(isAddressDestination(destination), "Destination is not an address");
+        bytes32 data = Destination.unwrap(destination);
+        return address(uint160(uint256(data)));
+    }
+
     function exitsEqual(
         SingleAssetExit[] memory exitA,
         SingleAssetExit[] memory exitB
@@ -159,17 +186,12 @@ library ExitFormat {
 
         for (uint256 j = 0; j < singleAssetExit.allocations.length; j++) {
             require(
-                _isAddress(singleAssetExit.allocations[j].destination),
-                "Destination is not a zero-padded address"
+                _hasAddress(singleAssetExit.allocations[j].destination),
+                "Destination does not contain an address"
             );
-            address payable destination =
-                payable(
-                    address(
-                        uint160(
-                            uint256(singleAssetExit.allocations[j].destination)
-                        )
-                    )
-                );
+            address payable destination = payable(
+                getDestinationAddress(singleAssetExit.allocations[j].destination)
+            );
             uint256 amount = singleAssetExit.allocations[j].amount;
             if (asset == address(0)) {
                 (bool success, ) = destination.call{value: amount}(""); //solhint-disable-line avoid-low-level-calls
@@ -186,14 +208,10 @@ library ExitFormat {
                 ) {
                     require(amount == 1, "Amount must be 1 for an ERC721 exit");
                     uint256 tokenId =
-                        abi
-                            .decode(
-                            singleAssetExit
-                                .assetMetadata
-                                .metadata,
+                        abi.decode(
+                            singleAssetExit.assetMetadata.metadata,
                             (TokenIdExitMetadata)
-                        )
-                            .tokenId;
+                        ).tokenId;
                     IERC721(asset).safeTransferFrom(
                         address(this),
                         destination,
@@ -204,14 +222,10 @@ library ExitFormat {
                     singleAssetExit.assetMetadata.assetType == AssetType.ERC1155
                 ) {
                     uint256 tokenId =
-                        abi
-                            .decode(
-                            singleAssetExit
-                                .assetMetadata
-                                .metadata,
+                        abi.decode(
+                            singleAssetExit.assetMetadata.metadata,
                             (TokenIdExitMetadata)
-                        )
-                            .tokenId;
+                        ).tokenId;
                     IERC1155(asset).safeTransferFrom(
                         address(this),
                         destination,
@@ -227,10 +241,9 @@ library ExitFormat {
                 singleAssetExit.allocations[j].allocationType ==
                 uint8(AllocationType.withdrawHelper)
             ) {
-                WithdrawHelperMetaData memory wd =
-                    _parseWithdrawHelper(
-                        singleAssetExit.allocations[j].metadata
-                    );
+                WithdrawHelperMetaData memory wd = _parseWithdrawHelper(
+                    singleAssetExit.allocations[j].metadata
+                );
                 WithdrawHelper(wd.callTo).execute(wd.callData, amount);
             }
         }
@@ -263,12 +276,11 @@ library ExitFormat {
     }
 
     /**
-     * @notice Checks whether given destination is a valid Ethereum address
-     * @dev Checks whether given destination is a valid Ethereum address
+     * @notice Checks whether given destination contains a valid Ethereum address
      * @param destination the destination to be checked
      */
-    function _isAddress(bytes32 destination) internal pure returns (bool) {
-        return uint96(bytes12(destination)) == 0;
+    function _hasAddress(Destination destination) internal pure returns (bool) {
+        return isAddressDestination(destination) && getDestinationAddress(destination) != address(0);
     }
 
     /**

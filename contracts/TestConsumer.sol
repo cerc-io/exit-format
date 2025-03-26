@@ -41,6 +41,13 @@ contract TestConsumer is ERC1155Holder {
         return ExitFormat.decodeAllocation(_allocation_);
     }
 
+    function destinationsEqual(
+        ExitFormat.Destination destinationA,
+        ExitFormat.Destination destinationB
+    ) public pure returns (bool) {
+        return ExitFormat.destinationsEqual(destinationA, destinationB);
+    }
+
     function exitsEqual(
         ExitFormat.SingleAssetExit[] memory exitA,
         ExitFormat.SingleAssetExit[] memory exitB
