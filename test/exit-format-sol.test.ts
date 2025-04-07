@@ -258,7 +258,7 @@ describe("ExitFormat (solidity)", function () {
 
     await expect(
       testConsumer.executeSingleAssetExit(singleAssetExit)
-    ).to.be.revertedWith("operator query for nonexistent token");
+    ).to.be.revertedWith("ERC721NonexistentToken");
   });
 
   it("Can execute a single ERC1155 asset exit", async function () {
