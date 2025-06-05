@@ -1,7 +1,5 @@
-import { utils } from "ethers";
+import { getAddress, zeroPadValue } from "ethers";
 import { Destination } from "./types";
-
-const { getAddress, hexZeroPad: zeroPadValue } = utils;
 
 export const equalDestinations = (a: Destination, b: Destination): boolean => {
   return a.toLowerCase() === b.toLowerCase();

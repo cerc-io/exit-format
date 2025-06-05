@@ -1,12 +1,14 @@
-import { defaultAbiCoder, ParamType } from "@ethersproject/abi";
+import { AbiCoder, ParamType } from "ethers";
 import { Allocation, Exit } from "./types";
 
-export const destinationABI = {
+const abiCoder = AbiCoder.defaultAbiCoder();
+
+export const destinationABI = ParamType.from({
   name: "destination",
   type: "bytes32"
-};
+});
 
-const allocationABI = {
+const allocationABI = ParamType.from({
   type: "tuple",
   components: [
     {
@@ -17,9 +19,9 @@ const allocationABI = {
     { name: "allocationType", type: "uint8" },
     { name: "metadata", type: "bytes" },
   ],
-} as ParamType;
+});
 
-export const exitABI = {
+export const exitABI = ParamType.from({
   type: "tuple[]",
   components: [
     { name: "asset", type: "address" },
@@ -37,16 +39,16 @@ export const exitABI = {
       components: allocationABI.components,
     },
   ],
-} as ParamType;
+});
 
 export function encodeAllocation(allocation: Allocation) {
-  return defaultAbiCoder.encode([allocationABI], [allocation]);
+  return abiCoder.encode([allocationABI], [allocation]);
 }
 
 export function encodeExit(exit: Exit) {
-  return defaultAbiCoder.encode([exitABI], [exit]);
+  return abiCoder.encode([exitABI], [exit]);
 }
 
 export function decodeExit(_exit_: any) {
-  return defaultAbiCoder.decode([exitABI], _exit_) as Exit;
+  return abiCoder.decode([exitABI], _exit_) as Exit;
 }
